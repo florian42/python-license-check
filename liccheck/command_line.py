@@ -109,14 +109,22 @@ class Reason(enum.Enum):
     UNKNOWN = 'UNKNOWN'
 
 
-def get_packages_info(requirement_file, no_deps=False):
+def get_packages_info(requirement_file, no_deps=False, mode="mixed"):
     regex_license = re.compile(r'License: (?P<license>.*)?$', re.M)
     regex_classifier = re.compile(r'Classifier: License(?: :: OSI Approved)?(?: :: (?P<classifier>.*))?$', re.M)
 
     requirements = parse_requirements(requirement_file)
 
+    def mixed(dist):
+        return get_licenses_from_classifiers(dist) or get_license(dist)
+
+    def get_licenses(mode, dist):
+        if mode == "classifier":
+            return get_licenses_from_classifiers(dist)
+        return get_license(dist)
+
     def transform(dist):
-        licenses = get_licenses_from_classifiers(dist) or get_license(dist) or []
+        licenses = (mixed(dist) if mode == "mixed" else get_licenses(mode, dist)) or []
         # Strip the useless "License" suffix and uniquify
         licenses = list(set([strip_license(l) for l in licenses]))
         # Removing Trailing windows generated \r
@@ -244,9 +252,9 @@ def group_by(items, key):
     return res
 
 
-def process(requirement_file, strategy, level=Level.STANDARD, reporting_file=None, no_deps=False):
+def process(requirement_file, strategy, level=Level.STANDARD, reporting_file=None, no_deps=False, mode="mixed"):
     print('gathering licenses...')
-    pkg_info = get_packages_info(requirement_file, no_deps)
+    pkg_info = get_packages_info(requirement_file, no_deps, mode)
     all = list(pkg_info)
     deps_mention = '' if no_deps else ' and dependencies'
     print('{} package{}{}.'.format(len(pkg_info), '' if len(pkg_info) <= 1 else 's', deps_mention))
@@ -330,13 +338,17 @@ def parse_args(args):
     parser.add_argument(
         '--no-deps', dest='no_deps',
         help="don't check dependencies", action='store_true')
+    parser.add_argument(
+        '-m', '--mode',
+        help='look for licenses either in trove classifiers, metadata or both', nargs='?',
+        default='mixed')
 
     return parser.parse_args(args)
 
 
 def run(args):
     strategy = read_strategy(args.strategy_ini_file)
-    return process(args.requirement_txt_file, strategy, args.level, args.reporting_txt_file, args.no_deps)
+    return process(args.requirement_txt_file, strategy, args.level, args.reporting_txt_file, args.no_deps, args.mode)
 
 
 def main():

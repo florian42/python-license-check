@@ -59,3 +59,18 @@ def test_deps(tmpfile, no_deps, expected_packages):
     packages_info = get_packages_info(tmppath, no_deps)
     packages = tuple(package['name'] for package in packages_info)
     assert packages == expected_packages
+
+@pytest.mark.parametrize(
+    ('mode', 'expected_license'), (
+            pytest.param('mixed', (['BSD'], ['MIT']), id='mixed'),
+            pytest.param('classifier', (['BSD'], ['MIT']), id='classifier'),
+            pytest.param('metadata', (['BSD (3 clause)'],  ['MIT']), id='metadata'),
+    )
+)
+def test_mode(tmpfile, mode, expected_license):
+    tmpfh, tmppath = tmpfile
+    tmpfh.write('prettytable\n')
+    tmpfh.close()
+    packages_info = get_packages_info(tmppath, mode=mode)
+    packages = tuple(package['licenses'] for package in packages_info)
+    assert packages == expected_license

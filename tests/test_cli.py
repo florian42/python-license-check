@@ -3,6 +3,7 @@ import pytest
 import sys
 import textwrap
 
+
 def test_parse_arguments():
     args = parse_args([])
     assert args.strategy_ini_file == './liccheck.ini'
@@ -24,7 +25,12 @@ def test_parse_arguments():
     assert args.requirement_txt_file == 'my_requirements.txt'
     assert args.level is Level.CAUTIOUS
     assert args.no_deps is True
-
+    args = parse_args(['--sfile', 'my_strategy.ini', '--rfile', 'my_requirements.txt', '--level', 'cautious', '--no-deps', '--mode', 'classifier'])
+    assert args.strategy_ini_file == 'my_strategy.ini'
+    assert args.requirement_txt_file == 'my_requirements.txt'
+    assert args.level is Level.CAUTIOUS
+    assert args.no_deps is True
+    assert args.mode == 'classifier'
 
 def test_read_strategy():
     args = parse_args(['--sfile', 'liccheck.ini'])
